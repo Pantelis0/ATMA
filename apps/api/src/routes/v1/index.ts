@@ -339,7 +339,8 @@ v1Router.post("/publish/x", async (req, res) => {
     platform: "x",
     title: "X update",
     captionText: text,
-    status: result.status === "published" ? "published" : "queued"
+    status: result.status === "published" ? "published" : "queued",
+    externalPostId: typeof result.externalPostId === "string" ? result.externalPostId : undefined
   });
   res.json({ ok: true, result, publication });
 });
