@@ -1,3 +1,4 @@
+import type { PublicationTarget } from "@prisma/client";
 import { env } from "../../config/env.js";
 import { ContentPlanner } from "../content/ContentPlanner.js";
 import { PersistenceService } from "../persistence/PersistenceService.js";
@@ -224,7 +225,7 @@ export class JobProcessor {
     }
 
     const results = await Promise.all(
-      publications.data.map((publication) =>
+      publications.data.map((publication: PublicationTarget) =>
         this.refreshXMetrics({
           triggeredBy: "worker",
           tweetId: publication.externalPostId ?? undefined,

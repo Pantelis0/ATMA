@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type PublicationTarget } from "@prisma/client";
 import { prisma } from "../../lib/prisma.js";
 import { env } from "../../config/env.js";
 
@@ -50,6 +50,10 @@ type PostMetricInput = {
 };
 
 export class PersistenceService {
+  private toPrismaJsonObject(value?: Record<string, unknown>): Prisma.JsonObject {
+    return (value ?? {}) as Prisma.JsonObject;
+  }
+
   private async safe<T>(operation: () => Promise<T>) {
     try {
       return {
@@ -120,8 +124,8 @@ export class PersistenceService {
         data: {
           strategyId: strategy.id,
           status: input.status ?? "completed",
-          inputSnapshotJson: (input.inputSnapshot ?? {}) as Prisma.InputJsonValue,
-          outputSnapshotJson: (input.outputSnapshot ?? {}) as Prisma.InputJsonValue,
+          inputSnapshotJson: this.toPrismaJsonObject(input.inputSnapshot),
+          outputSnapshotJson: this.toPrismaJsonObject(input.outputSnapshot),
           notes: input.notes
         }
       });
@@ -200,7 +204,7 @@ export class PersistenceService {
   }
 
   async listRecentXPublications(limit = 10) {
-    return this.safe(async () =>
+    return this.safe<PublicationTarget[]>(async () =>
       prisma.publicationTarget.findMany({
         where: {
           platform: "x",
