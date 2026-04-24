@@ -1,0 +1,240 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+model Entity {
+  id           String     @id @default(cuid())
+  name         String
+  legalName    String?
+  timezone     String     @default("UTC")
+  baseCurrency String     @default("EUR")
+  status       String     @default("active")
+  createdAt    DateTime   @default(now())
+  accounts     Account[]
+  portfolios   Portfolio[]
+  strategies   Strategy[]
+  offers       Offer[]
+  auditEvents  AuditEvent[]
+  killSwitches KillSwitch[]
+}
+
+model Account {
+  id                String   @id @default(cuid())
+  entityId          String
+  accountType       String
+  provider          String
+  externalAccountId String?
+  status            String   @default("connected")
+  metadataJson      Json?
+  createdAt         DateTime @default(now())
+  entity            Entity   @relation(fields: [entityId], references: [id], onDelete: Cascade)
+}
+
+model Strategy {
+  id           String        @id @default(cuid())
+  entityId     String
+  strategyType String
+  name         String
+  version      String
+  status       String        @default("draft")
+  configJson   Json?
+  createdAt    DateTime      @default(now())
+  entity       Entity        @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  runs         StrategyRun[]
+}
+
+model StrategyRun {
+  id                String    @id @default(cuid())
+  strategyId        String
+  startedAt         DateTime  @default(now())
+  endedAt           DateTime?
+  status            String    @default("started")
+  inputSnapshotJson Json?
+  outputSnapshotJson Json?
+  notes             String?
+  strategy          Strategy  @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  orders            Order[]
+}
+
+model Portfolio {
+  id            String     @id @default(cuid())
+  entityId      String
+  brokerAccountId String?
+  name          String
+  baseCurrency  String     @default("EUR")
+  status        String     @default("active")
+  entity        Entity     @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  positions     Position[]
+  orders        Order[]
+  riskEvents    RiskEvent[]
+}
+
+model Position {
+  id          String   @id @default(cuid())
+  portfolioId String
+  symbol      String
+  assetClass  String
+  quantity    Float
+  avgCost     Float
+  marketValue Float
+  updatedAt   DateTime @updatedAt
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  portfolioId   String
+  strategyRunId String?
+  brokerOrderId String?
+  symbol        String
+  side          String
+  orderType     String
+  quantity      Float
+  limitPrice    Float?
+  status        String      @default("created")
+  submittedAt   DateTime?
+  filledAt      DateTime?
+  portfolio     Portfolio   @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  strategyRun   StrategyRun? @relation(fields: [strategyRunId], references: [id], onDelete: SetNull)
+  fills         Fill[]
+}
+
+model Fill {
+  id           String   @id @default(cuid())
+  orderId      String
+  brokerFillId String?
+  fillPrice    Float
+  fillQuantity Float
+  feeAmount    Float?
+  filledAt     DateTime
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model RiskEvent {
+  id                  String    @id @default(cuid())
+  entityId            String
+  portfolioId         String
+  eventType           String
+  severity            String
+  message             String
+  triggerSnapshotJson Json?
+  createdAt           DateTime  @default(now())
+  portfolio           Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+}
+
+model ContentItem {
+  id          String             @id @default(cuid())
+  entityId    String
+  contentType String
+  theme       String?
+  title       String
+  scriptText  String?
+  captionText String?
+  status      String             @default("draft")
+  createdAt   DateTime           @default(now())
+  assets      MediaAsset[]
+  targets     PublicationTarget[]
+}
+
+model MediaAsset {
+  id            String      @id @default(cuid())
+  contentItemId String
+  assetType     String
+  storageUrl    String
+  mimeType      String
+  durationSec   Int?
+  metadataJson  Json?
+  createdAt     DateTime    @default(now())
+  contentItem   ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+}
+
+model PublicationTarget {
+  id              String      @id @default(cuid())
+  contentItemId   String
+  platform        String
+  targetAccountId String?
+  scheduledFor    DateTime?
+  status          String      @default("queued")
+  externalPostId  String?
+  publishedAt     DateTime?
+  contentItem     ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  metrics         PostMetric[]
+}
+
+model PostMetric {
+  id                   String            @id @default(cuid())
+  publicationTargetId  String
+  capturedAt           DateTime          @default(now())
+  impressions          Int               @default(0)
+  engagements          Int               @default(0)
+  clicks               Int               @default(0)
+  shares               Int               @default(0)
+  comments             Int               @default(0)
+  followersDelta       Int               @default(0)
+  revenueAttributed    Float             @default(0)
+  publicationTarget    PublicationTarget @relation(fields: [publicationTargetId], references: [id], onDelete: Cascade)
+}
+
+model Offer {
+  id          String   @id @default(cuid())
+  entityId    String
+  offerType   String
+  name        String
+  landingUrl  String
+  status      String   @default("active")
+  metadataJson Json?
+  entity      Entity   @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  conversions Conversion[]
+}
+
+model Conversion {
+  id                  String   @id @default(cuid())
+  offerId             String
+  publicationTargetId String?
+  sourcePlatform      String
+  conversionType      String
+  amount              Float
+  currency            String
+  convertedAt         DateTime @default(now())
+  offer               Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+}
+
+model AuditEvent {
+  id         String   @id @default(cuid())
+  entityId   String
+  actorType  String
+  actorId    String?
+  actionType String
+  objectType String
+  objectId   String?
+  payloadJson Json?
+  createdAt  DateTime @default(now())
+  entity     Entity   @relation(fields: [entityId], references: [id], onDelete: Cascade)
+}
+
+model Approval {
+  id               String   @id @default(cuid())
+  entityId         String
+  approvalType     String
+  requestedForType String
+  requestedForId   String
+  status           String   @default("pending")
+  requestedAt      DateTime @default(now())
+  resolvedAt       DateTime?
+}
+
+model KillSwitch {
+  id        String   @id @default(cuid())
+  entityId  String
+  scope     String
+  status    String   @default("disabled")
+  reason    String?
+  updatedAt DateTime @updatedAt
+  entity    Entity   @relation(fields: [entityId], references: [id], onDelete: Cascade)
+}

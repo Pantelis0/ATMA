@@ -1,0 +1,9 @@
+.git
+.next
+node_modules
+apps/dashboard/.next
+apps/api/dist
+packages/shared/dist
+generated
+*.log
+.DS_Store

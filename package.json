@@ -1,0 +1,29 @@
+{
+  "name": "atma",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @atma/api",
+    "dev:dashboard": "npm run dev -w @atma/dashboard",
+    "up": "node scripts/up.mjs",
+    "infra:check": "node scripts/check-infra.mjs",
+    "dashboard:hash-password": "node scripts/hash-dashboard-password.mjs",
+    "build": "npm run build -w @atma/shared && npm run build -w @atma/api && npm run build -w @atma/dashboard",
+    "typecheck": "npm run typecheck -w @atma/shared && npm run typecheck -w @atma/api && npm run typecheck -w @atma/dashboard",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "worker": "npm run worker -w @atma/api",
+    "start:api": "npm run start -w @atma/api",
+    "start:worker": "npm run start:worker -w @atma/api"
+  },
+  "devDependencies": {
+    "prisma": "^6.7.0",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}
