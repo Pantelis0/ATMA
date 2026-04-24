@@ -3,7 +3,7 @@ services:
     name: atma-api
     env: docker
     dockerfilePath: ./Dockerfile
-    dockerCommand: sh -lc "ATMA_RUNTIME_ROLE=api npm run start:api"
+    dockerCommand: ./scripts/start-api.sh
     healthCheckPath: /health
     autoDeploy: false
 
@@ -11,5 +11,5 @@ services:
     name: atma-worker
     env: docker
     dockerfilePath: ./Dockerfile
-    dockerCommand: sh -lc "ATMA_RUNTIME_ROLE=worker npm run start:worker"
+    dockerCommand: ./scripts/start-worker.sh
     autoDeploy: false
