@@ -14,7 +14,7 @@ This is a **paper-trading-first** starter codebase for:
 - **Backend:** Node.js + TypeScript + Express
 - **Database:** PostgreSQL
 - **Queue/cache:** Redis
-- **Infra:** Railway/Fly for backend, Vercel for dashboard later
+- **Infra:** Render for API + worker, Vercel for dashboard
 - **Trading first target:** Alpaca paper trading
 - **Publishing first targets:** X and Discord
 

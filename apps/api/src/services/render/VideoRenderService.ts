@@ -1,4 +1,5 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { constants } from "node:fs";
+import { access, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
@@ -52,6 +53,46 @@ function quoteShell(value: string) {
 }
 
 export class VideoRenderService {
+  private async resolveReadablePath(...candidates: Array<string | undefined>) {
+    for (const candidate of candidates) {
+      if (!candidate) {
+        continue;
+      }
+
+      const resolved = path.isAbsolute(candidate) ? candidate : path.resolve(process.cwd(), candidate);
+
+      try {
+        await access(resolved, constants.R_OK);
+        return resolved;
+      } catch {
+        // try next candidate
+      }
+    }
+
+    return undefined;
+  }
+
+  private async resolveFontPath() {
+    return (
+      (await this.resolveReadablePath(
+        env.VIDEO_FONT_PATH,
+        "./assets/fonts/Inter-Regular.ttf",
+        "./assets/fonts/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/System/Library/Fonts/Supplemental/Arial.ttf",
+        "/Library/Fonts/Arial.ttf"
+      )) ?? "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    );
+  }
+
+  private resolveMediaPath(candidate?: string) {
+    if (!candidate) {
+      return undefined;
+    }
+
+    return path.isAbsolute(candidate) ? candidate : path.resolve(process.cwd(), candidate);
+  }
+
   private getFfmpegPath() {
     return env.FFMPEG_PATH || ffmpegStatic || "ffmpeg";
   }
@@ -79,12 +120,12 @@ export class VideoRenderService {
     });
   }
 
-  private buildSceneCommand(scene: VideoScene, outputFile: string) {
+  private buildSceneCommand(scene: VideoScene, outputFile: string, fontPath: string) {
     const title = ffmpegEscape(scene.title);
     const body = ffmpegEscape(scene.body);
     const drawBox = `drawbox=x=60:y=120:w=${env.VIDEO_WIDTH - 120}:h=${env.VIDEO_HEIGHT - 240}:color=#142231@0.94:t=fill`;
-    const titleText = `drawtext=fontfile='${ffmpegEscape(env.VIDEO_FONT_PATH)}':text='${title}':fontcolor=white:fontsize=64:x=80:y=180`;
-    const bodyText = `drawtext=fontfile='${ffmpegEscape(env.VIDEO_FONT_PATH)}':text='${body}':fontcolor=white:fontsize=42:line_spacing=12:x=80:y=360`;
+    const titleText = `drawtext=fontfile='${ffmpegEscape(fontPath)}':text='${title}':fontcolor=white:fontsize=64:x=80:y=180`;
+    const bodyText = `drawtext=fontfile='${ffmpegEscape(fontPath)}':text='${body}':fontcolor=white:fontsize=42:line_spacing=12:x=80:y=360`;
     const filter = [drawBox, titleText, bodyText].join(",");
 
     return {
@@ -235,6 +276,9 @@ export class VideoRenderService {
     const slug = slugify(input.title || `atma-${input.symbol}`);
     const renderId = `${slug}-${Date.now()}`;
     const outputDir = path.resolve(process.cwd(), env.MEDIA_OUTPUT_DIR, renderId);
+    const fontPath = await this.resolveFontPath();
+    const musicPath = this.resolveMediaPath(input.musicPath);
+    const voiceoverPath = this.resolveMediaPath(input.voiceoverPath);
     await mkdir(outputDir, { recursive: true });
 
     const manifest = {
@@ -246,7 +290,7 @@ export class VideoRenderService {
         width: env.VIDEO_WIDTH,
         height: env.VIDEO_HEIGHT,
         sceneDurationSec: env.VIDEO_SCENE_DURATION_SEC,
-        fontPath: env.VIDEO_FONT_PATH
+        fontPath
       }
     };
 
@@ -257,11 +301,11 @@ export class VideoRenderService {
     const manifestFile = path.join(outputDir, "manifest.json");
     const shellFile = path.join(outputDir, "render.sh");
 
-    const commands = input.scenes.map((scene, index) => this.buildSceneCommand(scene, sceneFiles[index]));
-    const concatCommand = this.buildConcatCommand(concatFile, input.musicPath || input.voiceoverPath ? baseOutputFile : outputFile);
+    const commands = input.scenes.map((scene, index) => this.buildSceneCommand(scene, sceneFiles[index], fontPath));
+    const concatCommand = this.buildConcatCommand(concatFile, musicPath || voiceoverPath ? baseOutputFile : outputFile);
     const audioMuxCommand = this.buildAudioMuxCommand(concatCommand.file, outputFile, {
-      musicPath: input.musicPath,
-      voiceoverPath: input.voiceoverPath,
+      musicPath,
+      voiceoverPath,
       musicVolume: input.musicVolume ?? env.VIDEO_MUSIC_VOLUME,
       voiceoverVolume: input.voiceoverVolume ?? env.VIDEO_VOICEOVER_VOLUME
     });

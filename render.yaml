@@ -1,7 +1,7 @@
 services:
   - type: web
     name: atma-api
-    env: docker
+    runtime: docker
     dockerfilePath: ./Dockerfile
     dockerCommand: ./scripts/start-api.sh
     healthCheckPath: /health
@@ -9,7 +9,7 @@ services:
 
   - type: worker
     name: atma-worker
-    env: docker
+    runtime: docker
     dockerfilePath: ./Dockerfile
     dockerCommand: ./scripts/start-worker.sh
     autoDeploy: false

@@ -1,11 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { getApiUrlConfig } from "../lib/api-config";
 
-const API_URL = process.env.NEXT_PUBLIC_ATMA_API_URL ?? "http://localhost:4000";
+const apiConfig = getApiUrlConfig();
 
 async function request(path: string, options?: { method?: "GET" | "POST"; body?: Record<string, unknown> }) {
-  const response = await fetch(`${API_URL}${path}`, {
+  if (!apiConfig.apiUrl) {
+    throw new Error(apiConfig.configError ?? "API URL is not configured.");
+  }
+
+  const response = await fetch(`${apiConfig.apiUrl}${path}`, {
     method: options?.method ?? "POST",
     headers:
       options?.method === "GET"
@@ -41,6 +46,8 @@ export function ActionPanel() {
     <div className="card half">
       <h2 className="card-title">Control panel</h2>
       <p className="card-subtitle">Trigger core ATMA flows from the admin UI.</p>
+
+      {apiConfig.configError ? <div className="list-item status-bad">{apiConfig.configError}</div> : null}
 
       <div className="actions">
         <div className="action-row">

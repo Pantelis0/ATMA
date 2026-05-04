@@ -31,7 +31,7 @@ const envSchema = z.object({
   SCHEDULE_PUBLISH_DISCORD_SUMMARY_CRON: z.string().default(""),
   MEDIA_OUTPUT_DIR: z.string().default("./generated/media"),
   FFMPEG_PATH: z.string().optional(),
-  VIDEO_FONT_PATH: z.string().default("/System/Library/Fonts/Supplemental/Arial.ttf"),
+  VIDEO_FONT_PATH: z.string().optional(),
   VIDEO_WIDTH: z.coerce.number().default(1080),
   VIDEO_HEIGHT: z.coerce.number().default(1920),
   VIDEO_SCENE_DURATION_SEC: z.coerce.number().default(4),
@@ -39,6 +39,17 @@ const envSchema = z.object({
   VIDEO_DEFAULT_VOICEOVER_PATH: z.string().optional(),
   VIDEO_MUSIC_VOLUME: z.coerce.number().default(0.18),
   VIDEO_VOICEOVER_VOLUME: z.coerce.number().default(1),
+  CORS_ALLOWED_ORIGINS: z
+    .string()
+    .optional()
+    .transform((value) =>
+      value
+        ? value
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean)
+        : []
+    ),
   PAPER_TRADING: z
     .string()
     .default("true")

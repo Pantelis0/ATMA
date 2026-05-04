@@ -1,8 +1,16 @@
-const API_URL = process.env.NEXT_PUBLIC_ATMA_API_URL ?? "http://localhost:4000";
+import { getApiUrlConfig } from "./api-config";
+
+const apiConfig = getApiUrlConfig();
 
 async function fetchJson<T>(path: string): Promise<{ data?: T; error?: string }> {
+  if (!apiConfig.apiUrl) {
+    return {
+      error: apiConfig.configError ?? "API URL is not configured."
+    };
+  }
+
   try {
-    const response = await fetch(`${API_URL}${path}`, {
+    const response = await fetch(`${apiConfig.apiUrl}${path}`, {
       cache: "no-store"
     });
 
@@ -121,5 +129,13 @@ export async function getDashboardData() {
     fetchJson<QueueSchedulesResponse>("/v1/queue/schedules")
   ]);
 
-  return { status, trading, queue, infra, schedules, apiUrl: API_URL };
+  return {
+    status,
+    trading,
+    queue,
+    infra,
+    schedules,
+    apiUrl: apiConfig.apiUrl ?? "not-configured",
+    apiConfigError: apiConfig.configError
+  };
 }
